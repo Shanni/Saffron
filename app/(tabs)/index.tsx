@@ -205,7 +205,7 @@ export default function SaffronHomeScreen() {
         {/* Header */}
         <ThemedView style={styles.header}>
           <ThemedText type="title" style={[styles.title, { color: Colors[colorScheme ?? 'light'].tint }]}>Saffron</ThemedText>
-          <ThemedText style={styles.subtitle}>Your AI Financial Assistant</ThemedText>
+          <ThemedText style={styles.subtitle}>Make your money work for you.</ThemedText>
         </ThemedView>
 
         {/* Input Section */}
