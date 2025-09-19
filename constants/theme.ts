@@ -5,24 +5,25 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Saffron-inspired, calm palette
+const tintColorLight = '#F4A261'; // saffron
+const tintColorDark = '#FFD27F'; // warm saffron/yellow for dark mode accent
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#2D2A26', // deep warm neutral for readability
+    background: '#FFF9E6', // light warm cream
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: '#8C7A5B', // muted brown for icons
+    tabIconDefault: '#BFA67A', // soft sand
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#F5F2E8', // soft eggshell
+    background: '#1C1A16', // very dark warm neutral
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#C8BFA6', // muted warm light
+    tabIconDefault: '#9E8F6F',
     tabIconSelected: tintColorDark,
   },
 };

@@ -1,98 +1,450 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import React, { useState } from 'react';
+import { 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  ScrollView, 
+  Alert,
+  KeyboardAvoidingView,
+  Platform 
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export default function HomeScreen() {
+interface Transaction {
+  id: string;
+  type: 'trade' | 'transfer' | 'load_fund' | 'deposit' | 'withdraw' | 'unknown';
+  description: string;
+  amount?: number;
+  recipient?: string;
+  symbol?: string;
+  chain?: string;
+  timestamp: Date;
+  status: 'pending' | 'completed' | 'failed';
+}
+
+export default function SaffronHomeScreen() {
+  const colorScheme = useColorScheme();
+  const [inputText, setInputText] = useState('');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Allowed tokens on Aptos perp DEX (example set; adjust as needed)
+  const APTOS_PERP_TOKENS = new Set([
+    'APT', 'BTC', 'ETH', 'SOL', 'SUI', 'ARB', 'AVAX', 'OP', 'DOGE', 'TON'
+  ]);
+
+  // Supported chains for USDC bridging
+  const SUPPORTED_CHAINS = [
+    'aptos', 'ethereum', 'eth', 'arbitrum', 'base', 'optimism', 'op', 'bsc', 'binance', 'polygon', 'matic',
+    'avalanche', 'avax', 'solana', 'sui', 'zksync', 'zksync', 'linea', 'mantle', 'blast'
+  ];
+
+  const extractChain = (text: string): string | undefined => {
+    const lower = text.toLowerCase();
+    // try to capture after "from" or "to"
+    const m = lower.match(/\b(?:from|to)\s+([a-zA-Z]+)/);
+    const guess = m ? m[1] : undefined;
+    const found = SUPPORTED_CHAINS.find(c => c === (guess ?? '').toLowerCase());
+    return found ?? undefined;
+  };
+
+  const parseCommand = (text: string): Transaction => {
+    const lowerText = text.toLowerCase();
+    const id = Date.now().toString();
+    const timestamp = new Date();
+    
+    // Extract amount using regex
+    const amountMatch = text.match(/\$?(\d+(?:\.\d{2})?)/);
+    const amount = amountMatch ? parseFloat(amountMatch[1]) : undefined;
+    
+    // Trading on Aptos perp DEX (restrict to known tokens)
+    if (lowerText.includes('trade') || lowerText.includes('buy') || lowerText.includes('sell')) {
+      // Extract token symbol (1-5 uppercase letters)
+      const symbolMatch = text.match(/\b([A-Z]{1,5})\b/);
+      const symbol = symbolMatch ? symbolMatch[1] : undefined;
+
+      // Validate against allowed tokens
+      const validSymbol = symbol && APTOS_PERP_TOKENS.has(symbol.toUpperCase());
+
+      return {
+        id,
+        type: validSymbol ? 'trade' : 'unknown',
+        description: validSymbol ? text : `${text} (Unsupported token for Aptos perp DEX)`,
+        amount,
+        symbol: symbol?.toUpperCase(),
+        timestamp,
+        status: 'pending'
+      };
+    } else if (lowerText.includes('send') || lowerText.includes('transfer') || lowerText.includes('pay')) {
+      // Extract recipient (simple pattern matching)
+      const recipientMatch = text.match(/(?:to|send)\s+([a-zA-Z\s]+?)(?:\s|$)/i);
+      const recipient = recipientMatch ? recipientMatch[1].trim() : undefined;
+      
+      return {
+        id,
+        type: 'transfer',
+        description: text,
+        amount,
+        recipient,
+        timestamp,
+        status: 'pending'
+      };
+    } else if (lowerText.includes('deposit') || lowerText.includes('bridge in') || lowerText.includes('load')) {
+      // Deposit USDC from other chains into Aptos
+      const chain = extractChain(text) || 'ethereum';
+      return {
+        id,
+        type: 'deposit',
+        description: `Deposit USDC ${amount ? '$' + amount.toFixed(2) : ''} from ${chain} to Aptos`,
+        amount,
+        chain,
+        timestamp,
+        status: 'pending',
+      };
+    } else if (lowerText.includes('withdraw') || lowerText.includes('bridge out') || lowerText.includes('send usdc')) {
+      // Withdraw USDC from Aptos to other chains
+      const chain = extractChain(text) || 'ethereum';
+      return {
+        id,
+        type: 'withdraw',
+        description: `Withdraw USDC ${amount ? '$' + amount.toFixed(2) : ''} to ${chain}`,
+        amount,
+        chain,
+        timestamp,
+        status: 'pending',
+      };
+    } else if (lowerText.includes('load fund') || lowerText.includes('add fund') || lowerText.includes('deposit fund')) {
+      // Generic load funds (fallback)
+      return {
+        id,
+        type: 'load_fund',
+        description: text,
+        amount,
+        timestamp,
+        status: 'pending'
+      };
+    }
+    
+    return {
+      id,
+      type: 'unknown',
+      description: text,
+      timestamp,
+      status: 'failed'
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!inputText.trim()) return;
+    
+    setIsProcessing(true);
+    
+    // Parse the command
+    const transaction = parseCommand(inputText);
+    
+    // Add to transactions list
+    setTransactions(prev => [transaction, ...prev]);
+    
+    // Simulate processing
+    setTimeout(() => {
+      setTransactions(prev => 
+        prev.map(t => 
+          t.id === transaction.id 
+            ? { ...t, status: transaction.type === 'unknown' ? 'failed' : 'completed' }
+            : t
+        )
+      );
+      setIsProcessing(false);
+    }, 2000);
+    
+    // Clear input
+    setInputText('');
+    
+    // Show confirmation
+    if (transaction.type !== 'unknown') {
+      Alert.alert('Processing', `Your ${transaction.type.replace('_', ' ')} request is being processed.`);
+    } else {
+      Alert.alert(
+        'Error',
+        'Sorry, I did not understand that. Try: "Buy 10 APT", "Sell 5 SOL", "Deposit $200 USDC from Arbitrum", or "Withdraw $50 USDC to Base".'
+      );
+    }
+  };
+
+  const getTransactionIcon = (type: Transaction['type']) => {
+    switch (type) {
+      case 'trade': return 'chart.line.uptrend.xyaxis';
+      case 'transfer': return 'paperplane.fill';
+      case 'load_fund': return 'plus.circle.fill';
+      case 'deposit': return 'arrow.down.circle.fill';
+      case 'withdraw': return 'arrow.up.circle.fill';
+      default: return 'questionmark.circle';
+    }
+  };
+
+  const getStatusColor = (status: Transaction['status']) => {
+    switch (status) {
+      case 'completed': return '#4CAF50';
+      case 'pending': return '#FF9800';
+      case 'failed': return '#F44336';
+      default: return Colors[colorScheme ?? 'light'].text;
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        {/* Header */}
+        <ThemedView style={styles.header}>
+          <ThemedText type="title" style={[styles.title, { color: Colors[colorScheme ?? 'light'].tint }]}>Saffron</ThemedText>
+          <ThemedText style={styles.subtitle}>Your AI Financial Assistant</ThemedText>
+        </ThemedView>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Input Section */}
+        <ThemedView style={styles.inputSection}>
+          <ThemedText type="subtitle" style={styles.inputLabel}>
+            What would you like to do?
+          </ThemedText>
+          <ThemedView style={[styles.inputContainer, { borderColor: Colors[colorScheme ?? 'light'].tint }]}>
+            <TextInput
+              style={[styles.textInput, { color: Colors[colorScheme ?? 'light'].text }]}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="e.g., 'Buy 10 APT' · 'Sell 5 SOL' · 'Deposit $200 USDC from Arbitrum' · 'Withdraw $50 USDC to Base'"
+              placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
+              multiline
+              maxLength={200}
+            />
+            <TouchableOpacity 
+              style={[styles.submitButton, { backgroundColor: Colors[colorScheme ?? 'light'].tint }]}
+              onPress={handleSubmit}
+              disabled={isProcessing || !inputText.trim()}
+            >
+              <IconSymbol 
+                name={isProcessing ? "hourglass" : "arrow.up.circle.fill"} 
+                size={24} 
+                color="white" 
+              />
+            </TouchableOpacity>
+          </ThemedView>
+        </ThemedView>
+
+        {/* Suggestions */}
+        <ThemedView style={styles.suggestionsSection}>
+          <ThemedText style={styles.suggestionsTitle}>Try saying:</ThemedText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsScroll}>
+            {[
+              'Buy 10 APT',
+              'Sell 5 SOL',
+              'Deposit $250 USDC from Arbitrum',
+              'Withdraw $100 USDC to Base',
+              'Transfer $25 to Alice'
+            ].map((suggestion, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.suggestionChip, { borderColor: Colors[colorScheme ?? 'light'].tint }]}
+                onPress={() => setInputText(suggestion)}
+              >
+                <ThemedText style={styles.suggestionText}>{suggestion}</ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </ThemedView>
+
+        {/* Transactions List */}
+        <ThemedView style={styles.transactionsSection}>
+          <ThemedText type="subtitle" style={styles.transactionsTitle}>Recent Activity</ThemedText>
+          <ScrollView style={styles.transactionsList} showsVerticalScrollIndicator={false}>
+            {transactions.length === 0 ? (
+              <ThemedView style={styles.emptyState}>
+                <IconSymbol name="tray" size={48} color={Colors[colorScheme ?? 'light'].tabIconDefault} />
+                <ThemedText style={styles.emptyText}>No transactions yet</ThemedText>
+                <ThemedText style={styles.emptySubtext}>Start by typing a command above</ThemedText>
+              </ThemedView>
+            ) : (
+              transactions.map((transaction) => (
+                <ThemedView key={transaction.id} style={[styles.transactionItem, { borderColor: Colors[colorScheme ?? 'light'].tabIconDefault }]}>
+                  <ThemedView style={styles.transactionHeader}>
+                    <IconSymbol 
+                      name={getTransactionIcon(transaction.type)} 
+                      size={20} 
+                      color={Colors[colorScheme ?? 'light'].tint} 
+                    />
+                    <ThemedText style={styles.transactionType}>
+                      {transaction.type.replace('_', ' ').toUpperCase()}
+                    </ThemedText>
+                    <ThemedView style={[styles.statusBadge, { backgroundColor: getStatusColor(transaction.status) }]}>
+                      <ThemedText style={styles.statusText}>{transaction.status}</ThemedText>
+                    </ThemedView>
+                  </ThemedView>
+                  <ThemedText style={styles.transactionDescription}>{transaction.description}</ThemedText>
+                  {transaction.amount && (
+                    <ThemedText style={styles.transactionAmount}>${transaction.amount.toFixed(2)}</ThemedText>
+                  )}
+                  <ThemedText style={styles.transactionTime}>
+                    {transaction.timestamp.toLocaleTimeString()}
+                  </ThemedText>
+                </ThemedView>
+              ))
+            )}
+          </ScrollView>
+        </ThemedView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
+  keyboardView: {
+    flex: 1,
+  },
+  header: {
+    padding: 20,
+    paddingTop: 10,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 16,
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  inputSection: {
+    padding: 20,
+    paddingTop: 10,
+  },
+  inputLabel: {
+    marginBottom: 12,
+    fontSize: 18,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    borderWidth: 2,
+    borderRadius: 16,
+    padding: 4,
+    alignItems: 'flex-end',
+  },
+  textInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  suggestionsSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  suggestionsTitle: {
+    fontSize: 14,
+    opacity: 0.7,
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  suggestionsScroll: {
+    flexDirection: 'row',
+  },
+  suggestionChip: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  suggestionText: {
+    fontSize: 14,
+  },
+  transactionsSection: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 10,
+  },
+  transactionsTitle: {
+    marginBottom: 16,
+    fontSize: 18,
+  },
+  transactionsList: {
+    flex: 1,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  transactionItem: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  transactionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  transactionType: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'white',
+    textTransform: 'uppercase',
+  },
+  transactionDescription: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  transactionAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  transactionTime: {
+    fontSize: 12,
+    opacity: 0.7,
   },
 });
