@@ -14,6 +14,8 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import PreviewModal from '@/components/PreviewModal';
+import SaffronAPI, { TradePreview, BridgePreview } from '@/api';
 
 interface Transaction {
   id: string;
@@ -32,6 +34,11 @@ export default function SaffronHomeScreen() {
   const [inputText, setInputText] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [currentPreview, setCurrentPreview] = useState<TradePreview | BridgePreview | null>(null);
+  const [pendingTransaction, setPendingTransaction] = useState<Transaction | null>(null);
+  
+  const saffronAPI = new SaffronAPI();
 
   // Allowed tokens on Aptos perp DEX (example set; adjust as needed)
   const APTOS_PERP_TOKENS = new Set([
@@ -144,9 +151,60 @@ export default function SaffronHomeScreen() {
     
     setIsProcessing(true);
     
-    // Parse the command
-    const transaction = parseCommand(inputText);
-    
+    try {
+      // Parse the command
+      const transaction = parseCommand(inputText);
+      
+      // For unknown transactions, show error immediately
+      if (transaction.type === 'unknown') {
+        setIsProcessing(false);
+        Alert.alert(
+          'Error',
+          'Sorry, I did not understand that. Try: "Buy 10 APT", "Sell 5 SOL", "Deposit $200 USDC from Arbitrum", or "Withdraw $50 USDC to Base".'
+        );
+        return;
+      }
+      
+      // Generate preview for valid transactions
+      let preview: TradePreview | BridgePreview | null = null;
+      
+      if (transaction.type === 'trade' && transaction.symbol && transaction.amount) {
+        preview = await saffronAPI.getTradePreview(
+          transaction.symbol,
+          transaction.description.toLowerCase().includes('sell') ? 'sell' : 'buy',
+          transaction.amount,
+          undefined,
+          transaction.description.toLowerCase().includes('limit') ? 'limit' : 'market'
+        );
+      } else if ((transaction.type === 'deposit' || transaction.type === 'withdraw') && transaction.amount && transaction.chain) {
+        preview = await saffronAPI.getBridgePreview(
+          transaction.type === 'deposit' ? transaction.chain : 'aptos',
+          transaction.type === 'deposit' ? 'aptos' : transaction.chain,
+          transaction.amount.toString()
+        );
+      }
+      
+      if (preview) {
+        // Show preview modal
+        setCurrentPreview(preview);
+        setPendingTransaction(transaction);
+        setShowPreview(true);
+        setIsProcessing(false);
+      } else {
+        // For transfers and other types, process directly
+        executeTransaction(transaction);
+      }
+      
+      // Clear input
+      setInputText('');
+      
+    } catch (error) {
+      setIsProcessing(false);
+      Alert.alert('Error', 'Failed to process command. Please try again.');
+    }
+  };
+
+  const executeTransaction = (transaction: Transaction) => {
     // Add to transactions list
     setTransactions(prev => [transaction, ...prev]);
     
@@ -155,25 +213,37 @@ export default function SaffronHomeScreen() {
       setTransactions(prev => 
         prev.map(t => 
           t.id === transaction.id 
-            ? { ...t, status: transaction.type === 'unknown' ? 'failed' : 'completed' }
+            ? { ...t, status: 'completed' }
             : t
         )
       );
       setIsProcessing(false);
     }, 2000);
     
-    // Clear input
-    setInputText('');
-    
-    // Show confirmation
-    if (transaction.type !== 'unknown') {
-      Alert.alert('Processing', `Your ${transaction.type.replace('_', ' ')} request is being processed.`);
-    } else {
-      Alert.alert(
-        'Error',
-        'Sorry, I did not understand that. Try: "Buy 10 APT", "Sell 5 SOL", "Deposit $200 USDC from Arbitrum", or "Withdraw $50 USDC to Base".'
-      );
+    Alert.alert('Processing', `Your ${transaction.type.replace('_', ' ')} request is being processed.`);
+  };
+
+  const handleConfirmPreview = (strategy?: any) => {
+    if (pendingTransaction) {
+      setShowPreview(false);
+      setIsProcessing(true);
+      
+      // Add strategy info to transaction if it's a trade
+      const updatedTransaction = strategy && pendingTransaction.type === 'trade' 
+        ? { ...pendingTransaction, description: `${pendingTransaction.description} (${strategy} strategy)` }
+        : pendingTransaction;
+      
+      executeTransaction(updatedTransaction);
+      setPendingTransaction(null);
+      setCurrentPreview(null);
     }
+  };
+
+  const handleCancelPreview = () => {
+    setShowPreview(false);
+    setPendingTransaction(null);
+    setCurrentPreview(null);
+    setIsProcessing(false);
   };
 
   const getTransactionIcon = (type: Transaction['type']) => {
@@ -229,9 +299,9 @@ export default function SaffronHomeScreen() {
               disabled={isProcessing || !inputText.trim()}
             >
               <IconSymbol 
-                name={isProcessing ? "hourglass" : "arrow.up.circle.fill"} 
-                size={24} 
-                color="white" 
+                name={isProcessing ? "hourglass" : "leaf.fill"} 
+                size={20} 
+                color="#FFF8E1" 
               />
             </TouchableOpacity>
           </ThemedView>
@@ -298,6 +368,14 @@ export default function SaffronHomeScreen() {
           </ScrollView>
         </ThemedView>
       </KeyboardAvoidingView>
+      
+      {/* Preview Modal */}
+      <PreviewModal
+        visible={showPreview}
+        preview={currentPreview}
+        onConfirm={handleConfirmPreview}
+        onCancel={handleCancelPreview}
+      />
     </SafeAreaView>
   );
 }
