@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   TextInput, 
@@ -16,6 +16,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import PreviewModal from '@/components/PreviewModal';
 import SaffronAPI, { TradePreview, BridgePreview } from '@/api';
+import backendAPI, { TradeResult } from '@/api/backend-client';
 
 interface Transaction {
   id: string;
@@ -37,8 +38,30 @@ export default function SaffronHomeScreen() {
   const [showPreview, setShowPreview] = useState(false);
   const [currentPreview, setCurrentPreview] = useState<TradePreview | BridgePreview | null>(null);
   const [pendingTransaction, setPendingTransaction] = useState<Transaction | null>(null);
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
   
   const saffronAPI = new SaffronAPI();
+
+  // Initialize backend connection on mount
+  useEffect(() => {
+    const initBackend = async () => {
+      try {
+        // Generate a mock public key for demo
+        const mockPublicKey = '0x' + Math.random().toString(16).substring(2, 42);
+        
+        // Login to backend
+        await backendAPI.login(mockPublicKey);
+        setIsBackendConnected(true);
+        console.log('✅ Connected to backend API');
+      } catch (error) {
+        console.error('❌ Failed to connect to backend:', error);
+        setIsBackendConnected(false);
+        // App will fallback to mock API
+      }
+    };
+
+    initBackend();
+  }, []);
 
   // Allowed tokens on Aptos perp DEX (example set; adjust as needed)
   const APTOS_PERP_TOKENS = new Set([
@@ -169,19 +192,44 @@ export default function SaffronHomeScreen() {
       let preview: TradePreview | BridgePreview | null = null;
       
       if (transaction.type === 'trade' && transaction.symbol && transaction.amount) {
-        preview = await saffronAPI.getTradePreview(
-          transaction.symbol,
-          transaction.description.toLowerCase().includes('sell') ? 'sell' : 'buy',
-          transaction.amount,
-          undefined,
-          transaction.description.toLowerCase().includes('limit') ? 'limit' : 'market'
-        );
+        try {
+          // Use backend API for real trade preview
+          preview = await backendAPI.getTradePreview(
+            transaction.symbol,
+            transaction.description.toLowerCase().includes('sell') ? 'sell' : 'buy',
+            transaction.amount,
+            transaction.description.toLowerCase().includes('limit') ? 'limit' : 'market',
+            undefined, // price (for limit orders)
+            1 // leverage
+          );
+        } catch (error) {
+          console.error('Failed to get trade preview from backend:', error);
+          // Fallback to mock API
+          preview = await saffronAPI.getTradePreview(
+            transaction.symbol,
+            transaction.description.toLowerCase().includes('sell') ? 'sell' : 'buy',
+            transaction.amount,
+            undefined,
+            transaction.description.toLowerCase().includes('limit') ? 'limit' : 'market'
+          );
+        }
       } else if ((transaction.type === 'deposit' || transaction.type === 'withdraw') && transaction.amount && transaction.chain) {
-        preview = await saffronAPI.getBridgePreview(
-          transaction.type === 'deposit' ? transaction.chain : 'aptos',
-          transaction.type === 'deposit' ? 'aptos' : transaction.chain,
-          transaction.amount.toString()
-        );
+        try {
+          // Use backend API for bridge preview
+          preview = await backendAPI.getBridgePreview(
+            transaction.type === 'deposit' ? transaction.chain : 'aptos',
+            transaction.type === 'deposit' ? 'aptos' : transaction.chain,
+            transaction.amount.toString()
+          );
+        } catch (error) {
+          console.error('Failed to get bridge preview from backend:', error);
+          // Fallback to mock API
+          preview = await saffronAPI.getBridgePreview(
+            transaction.type === 'deposit' ? transaction.chain : 'aptos',
+            transaction.type === 'deposit' ? 'aptos' : transaction.chain,
+            transaction.amount.toString()
+          );
+        }
       }
       
       if (preview) {
@@ -204,23 +252,78 @@ export default function SaffronHomeScreen() {
     }
   };
 
-  const executeTransaction = (transaction: Transaction) => {
+  const executeTransaction = async (transaction: Transaction) => {
     // Add to transactions list
     setTransactions(prev => [transaction, ...prev]);
     
-    // Simulate processing
-    setTimeout(() => {
-      setTransactions(prev => 
-        prev.map(t => 
-          t.id === transaction.id 
-            ? { ...t, status: 'completed' }
-            : t
-        )
-      );
-      setIsProcessing(false);
-    }, 2000);
-    
-    Alert.alert('Processing', `Your ${transaction.type.replace('_', ' ')} request is being processed.`);
+    // For trade transactions, execute via backend API
+    if (transaction.type === 'trade' && transaction.symbol && transaction.amount) {
+      try {
+        // Generate a mock signature (in production, this would come from wallet)
+        const nonce = Date.now();
+        const mockSignature = '0x' + '1234567890abcdef'.repeat(8); // 128 char hex
+        
+        // Execute trade via backend
+        const result: TradeResult = await backendAPI.executeTrade({
+          symbol: transaction.symbol,
+          side: transaction.description.toLowerCase().includes('sell') ? 'sell' : 'buy',
+          size: transaction.amount,
+          type: transaction.description.toLowerCase().includes('limit') ? 'limit' : 'market',
+          leverage: 1,
+          nonce,
+          signature: mockSignature
+        });
+        
+        // Update transaction with result
+        setTransactions(prev => 
+          prev.map(t => 
+            t.id === transaction.id 
+              ? { 
+                  ...t, 
+                  status: result.committed ? 'completed' : 'failed',
+                  description: `${t.description} (Order ID: ${result.orderIds[0]?.substring(0, 8)}...)`
+                }
+              : t
+          )
+        );
+        setIsProcessing(false);
+        
+        Alert.alert(
+          result.committed ? 'Trade Executed' : 'Trade Failed', 
+          result.committed 
+            ? `Your ${transaction.type} was successfully committed to Ekiden.`
+            : 'Failed to execute trade. Please try again.'
+        );
+      } catch (error: any) {
+        console.error('Trade execution error:', error);
+        
+        // Mark as failed
+        setTransactions(prev => 
+          prev.map(t => 
+            t.id === transaction.id 
+              ? { ...t, status: 'failed' }
+              : t
+          )
+        );
+        setIsProcessing(false);
+        
+        Alert.alert('Error', error.message || 'Failed to execute trade. Please try again.');
+      }
+    } else {
+      // For other transaction types, simulate processing
+      setTimeout(() => {
+        setTransactions(prev => 
+          prev.map(t => 
+            t.id === transaction.id 
+              ? { ...t, status: 'completed' }
+              : t
+          )
+        );
+        setIsProcessing(false);
+      }, 2000);
+      
+      Alert.alert('Processing', `Your ${transaction.type.replace('_', ' ')} request is being processed.`);
+    }
   };
 
   const handleConfirmPreview = (strategy?: any) => {
@@ -274,7 +377,14 @@ export default function SaffronHomeScreen() {
       >
         {/* Header */}
         <ThemedView style={styles.header}>
-          <ThemedText type="title" style={[styles.title, { color: Colors[colorScheme ?? 'light'].tint }]}>Saffron</ThemedText>
+          <ThemedView style={styles.headerTop}>
+            <ThemedText type="title" style={[styles.title, { color: Colors[colorScheme ?? 'light'].tint }]}>Saffron</ThemedText>
+            {/* <ThemedView style={[styles.statusBadge, { backgroundColor: isBackendConnected ? '#4CAF50' : '#FF9800' }]}>
+              <ThemedText style={styles.statusText}>
+                {isBackendConnected ? '● Live' : '● Demo'}
+              </ThemedText>
+            </ThemedView> */}
+          </ThemedView>
           <ThemedText style={styles.subtitle}>Make your money work for you.</ThemedText>
         </ThemedView>
 
@@ -288,7 +398,7 @@ export default function SaffronHomeScreen() {
               style={[styles.textInput, { color: Colors[colorScheme ?? 'light'].text }]}
               value={inputText}
               onChangeText={setInputText}
-              placeholder="e.g., 'Buy 10 APT' · 'Sell 5 SOL' · 'Deposit $200 USDC from Arbitrum' · 'Withdraw $50 USDC to Base'"
+              placeholder="e.g., 'Buy 1000 APT' · 'Sell 5000 SOL' · 'Deposit $200 USDC from Arbitrum' · 'Withdraw $50 USDC to Base'"
               placeholderTextColor={Colors[colorScheme ?? 'light'].tabIconDefault}
               multiline
               maxLength={200}
@@ -391,6 +501,12 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 10,
     alignItems: 'center',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
   },
   title: {
     fontSize: 32,

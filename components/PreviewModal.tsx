@@ -111,22 +111,6 @@ const TRADING_STRATEGIES: StrategyOption[] = [
     estimatedTime: '15-90 min',
     priceImpact: 'low',
   },
-  {
-    id: 'smart_routing',
-    name: 'Smart Routing',
-    description: 'AI-optimized execution across multiple venues',
-    icon: 'cpu.fill',
-    estimatedTime: '1-10 min',
-    priceImpact: 'low',
-  },
-  {
-    id: 'delayed',
-    name: 'Anti-MEV',
-    description: 'Delayed execution to prevent front-running',
-    icon: 'shield.fill',
-    estimatedTime: '30-120 sec',
-    priceImpact: 'low',
-  },
 ];
 
 // Custom Slider Component
@@ -281,7 +265,7 @@ export default function PreviewModal({ visible, preview, onConfirm, onCancel }: 
                   <ThemedView style={styles.detailRow}>
                     <ThemedText style={styles.detailLabel}>Market:</ThemedText>
                     <ThemedText style={styles.detailValue}>
-                      Ekiden (Aptos)
+                      Kana (Aptos)
                     </ThemedText>
                   </ThemedView>
                 </ThemedView>
