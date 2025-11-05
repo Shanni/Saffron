@@ -15,12 +15,15 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import PreviewModal from '@/components/PreviewModal';
+import StrategyPreviewModal from '@/components/StrategyPreviewModal';
 import SaffronAPI, { TradePreview, BridgePreview } from '@/api';
 import backendAPI, { TradeResult } from '@/api/backend-client';
+import { strategyEngine } from '../../services/strategyEngine';
+import { aiProcessor } from '../../services/dexIntegration';
 
 interface Transaction {
   id: string;
-  type: 'trade' | 'transfer' | 'load_fund' | 'deposit' | 'withdraw' | 'unknown';
+  type: 'trade' | 'transfer' | 'load_fund' | 'deposit' | 'withdraw' | 'strategy' | 'unknown';
   description: string;
   amount?: number;
   recipient?: string;
@@ -39,6 +42,8 @@ export default function SaffronHomeScreen() {
   const [currentPreview, setCurrentPreview] = useState<TradePreview | BridgePreview | null>(null);
   const [pendingTransaction, setPendingTransaction] = useState<Transaction | null>(null);
   const [isBackendConnected, setIsBackendConnected] = useState(false);
+  const [showStrategyPreview, setShowStrategyPreview] = useState(false);
+  const [pendingStrategy, setPendingStrategy] = useState<any>(null);
   
   const saffronAPI = new SaffronAPI();
 
@@ -158,6 +163,28 @@ export default function SaffronHomeScreen() {
         timestamp,
         status: 'pending'
       };
+    } else if (
+      lowerText.includes('create strategy') || 
+      lowerText.includes('start strategy') ||
+      lowerText.includes('grid') || 
+      lowerText.includes('dca') || 
+      lowerText.includes('momentum') ||
+      lowerText.includes('mean reversion') ||
+      lowerText.includes('arbitrage') ||
+      lowerText.includes('stop strategy') ||
+      lowerText.includes('pause strategy') ||
+      lowerText.includes('show performance') ||
+      lowerText.includes('strategy stats')
+    ) {
+      // Trading strategy commands
+      return {
+        id,
+        type: 'strategy',
+        description: text,
+        amount,
+        timestamp,
+        status: 'pending'
+      };
     }
     
     return {
@@ -183,7 +210,7 @@ export default function SaffronHomeScreen() {
         setIsProcessing(false);
         Alert.alert(
           'Error',
-          'Sorry, I did not understand that. Try: "Buy 10 APT", "Sell 5 SOL", "Deposit $200 USDC from Arbitrum", or "Withdraw $50 USDC to Base".'
+          'Sorry, I did not understand that. Try: "Buy 10 APT", "Sell 5 SOL", "Create grid strategy for SOL", "Start DCA strategy", or "Show strategy performance".'
         );
         return;
       }
@@ -238,6 +265,9 @@ export default function SaffronHomeScreen() {
         setPendingTransaction(transaction);
         setShowPreview(true);
         setIsProcessing(false);
+      } else if (transaction.type === 'strategy') {
+        // Handle strategy commands with AI processor
+        executeStrategyCommand(transaction);
       } else {
         // For transfers and other types, process directly
         executeTransaction(transaction);
@@ -250,6 +280,198 @@ export default function SaffronHomeScreen() {
       setIsProcessing(false);
       Alert.alert('Error', 'Failed to process command. Please try again.');
     }
+  };
+
+  const executeStrategyCommand = async (transaction: Transaction) => {
+    const lowerCommand = transaction.description.toLowerCase();
+    
+    // Check if this is a strategy creation command
+    if (lowerCommand.includes('create') && lowerCommand.includes('strategy')) {
+      // Parse strategy details from command
+      const strategyConfig = parseStrategyFromCommand(transaction.description);
+      
+      // Show preview modal
+      setPendingStrategy(strategyConfig);
+      setPendingTransaction(transaction);
+      setShowStrategyPreview(true);
+      setIsProcessing(false);
+      return;
+    }
+    
+    // For non-creation commands, execute directly
+    setTransactions(prev => [transaction, ...prev]);
+    
+    try {
+      const result = await aiProcessor.executeCommand(transaction.description);
+      
+      setTransactions(prev => 
+        prev.map(t => 
+          t.id === transaction.id 
+            ? { ...t, status: result.success ? 'completed' : 'failed' }
+            : t
+        )
+      );
+      
+      if (result.success) {
+        Alert.alert('Success', 'Strategy command executed successfully!');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to execute strategy command');
+      }
+      
+    } catch (error) {
+      setTransactions(prev => 
+        prev.map(t => 
+          t.id === transaction.id 
+            ? { ...t, status: 'failed' }
+            : t
+        )
+      );
+      Alert.alert('Error', 'Failed to process strategy command');
+    }
+    
+    setIsProcessing(false);
+  };
+
+  const parseStrategyFromCommand = (command: string) => {
+    const lowerCommand = command.toLowerCase();
+    let strategyType: 'grid' | 'dca' | 'momentum' | 'mean_reversion' | 'arbitrage' = 'grid';
+    let market = 'SOL-PERP';
+    
+    // Determine strategy type
+    if (lowerCommand.includes('dca')) strategyType = 'dca';
+    else if (lowerCommand.includes('momentum')) strategyType = 'momentum';
+    else if (lowerCommand.includes('reversion')) strategyType = 'mean_reversion';
+    else if (lowerCommand.includes('arbitrage')) strategyType = 'arbitrage';
+    
+    // Determine market
+    if (lowerCommand.includes('btc')) market = 'BTC-PERP';
+    else if (lowerCommand.includes('eth')) market = 'ETH-PERP';
+    else if (lowerCommand.includes('bonk')) market = 'BONK-PERP';
+    
+    // Strategy-specific configurations
+    const baseConfig = {
+      name: `AI ${strategyType.toUpperCase()} Bot`,
+      type: strategyType,
+      market,
+      status: 'active',
+    };
+
+    switch (strategyType) {
+      case 'grid':
+        return {
+          ...baseConfig,
+          maxLeverage: 3, // Lower leverage for grid - needs to handle multiple positions
+          stopLoss: 15, // Wider stop loss - grid needs room for volatility
+          takeProfit: 8, // Lower take profit - frequent small wins
+          riskPerTrade: 1, // Small risk per grid level (10 levels = 10% total)
+          maxPositions: 10, // Multiple grid positions
+          rebalanceThreshold: 3, // Tight rebalancing for grid maintenance
+          gridLevels: 10,
+          gridSpacing: 1,
+        };
+
+      case 'dca':
+        return {
+          ...baseConfig,
+          maxLeverage: 1, // No leverage for DCA - pure accumulation strategy
+          stopLoss: 25, // Very wide stop loss - DCA is long-term
+          takeProfit: 50, // High take profit - looking for major moves
+          riskPerTrade: 2, // Higher per trade since fewer trades
+          maxPositions: 1, // DCA typically holds one position
+          rebalanceThreshold: 15, // Less frequent rebalancing
+          dcaInterval: 300, // 5 minutes
+          dcaAmount: 100,
+        };
+
+      case 'momentum':
+        return {
+          ...baseConfig,
+          maxLeverage: 4, // Moderate leverage for trend following
+          stopLoss: 8, // Tight stop loss - cut losses quickly on trend breaks
+          takeProfit: 20, // Higher take profit - ride trends longer
+          riskPerTrade: 3, // Higher risk for momentum plays
+          maxPositions: 3, // Fewer positions to focus on strong trends
+          rebalanceThreshold: 5, // Moderate rebalancing
+        };
+
+      case 'mean_reversion':
+        return {
+          ...baseConfig,
+          maxLeverage: 2, // Lower leverage - contrarian trades are riskier
+          stopLoss: 12, // Moderate stop loss - allow for some adverse movement
+          takeProfit: 6, // Quick take profit - mean reversion moves are often short
+          riskPerTrade: 2, // Moderate risk per trade
+          maxPositions: 5, // Multiple small mean reversion bets
+          rebalanceThreshold: 8, // Regular rebalancing
+        };
+
+      case 'arbitrage':
+        return {
+          ...baseConfig,
+          maxLeverage: 1, // No leverage needed - risk-free profits
+          stopLoss: 2, // Very tight stop loss - should be near risk-free
+          takeProfit: 1, // Very small take profit - quick scalping
+          riskPerTrade: 5, // Higher risk per trade since it's "risk-free"
+          maxPositions: 20, // Many small arbitrage opportunities
+          rebalanceThreshold: 1, // Constant rebalancing for arb opportunities
+        };
+
+      default:
+        return {
+          ...baseConfig,
+          maxLeverage: 5,
+          stopLoss: 5,
+          takeProfit: 10,
+          riskPerTrade: 2,
+          maxPositions: 5,
+          rebalanceThreshold: 5,
+        };
+    }
+  };
+
+  const confirmStrategyCreation = async () => {
+    if (!pendingStrategy || !pendingTransaction) return;
+    
+    // Add transaction to list
+    setTransactions(prev => [pendingTransaction, ...prev]);
+    
+    try {
+      // Create the strategy
+      const strategyId = strategyEngine.createStrategy(pendingStrategy);
+      
+      // Update transaction as completed
+      setTransactions(prev => 
+        prev.map(t => 
+          t.id === pendingTransaction.id 
+            ? { ...t, status: 'completed' }
+            : t
+        )
+      );
+      
+      Alert.alert('Success', 'Strategy created and activated successfully!');
+      
+    } catch (error) {
+      // Update transaction as failed
+      setTransactions(prev => 
+        prev.map(t => 
+          t.id === pendingTransaction.id 
+            ? { ...t, status: 'failed' }
+            : t
+        )
+      );
+      Alert.alert('Error', 'Failed to create strategy');
+    }
+    
+    // Close modal and reset state
+    setShowStrategyPreview(false);
+    setPendingStrategy(null);
+    setPendingTransaction(null);
+  };
+
+  const cancelStrategyCreation = () => {
+    setShowStrategyPreview(false);
+    setPendingStrategy(null);
+    setPendingTransaction(null);
   };
 
   const executeTransaction = async (transaction: Transaction) => {
@@ -424,8 +646,10 @@ export default function SaffronHomeScreen() {
             {[
               'Buy 10 APT',
               'Sell 5 SOL',
-              'Deposit $250 USDC from Arbitrum',
-              'Withdraw $100 USDC to Base',
+              'Create grid strategy for SOL',
+              'Start DCA strategy for BTC',
+              'Show strategy performance',
+              'Deposit $200 USDC from Arbitrum',
               'Transfer $25 to Alice'
             ].map((suggestion, index) => (
               <TouchableOpacity
@@ -485,6 +709,14 @@ export default function SaffronHomeScreen() {
         preview={currentPreview}
         onConfirm={handleConfirmPreview}
         onCancel={handleCancelPreview}
+      />
+      
+      {/* Strategy Preview Modal */}
+      <StrategyPreviewModal
+        visible={showStrategyPreview}
+        strategy={pendingStrategy}
+        onConfirm={confirmStrategyCreation}
+        onCancel={cancelStrategyCreation}
       />
     </SafeAreaView>
   );

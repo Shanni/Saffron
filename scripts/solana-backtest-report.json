@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2025-10-20T22:33:33.384Z",
+  "dataSource": "https://api.coingecko.com/api/v3/coins/solana/market_chart?vs_currency=usd&days=4",
+  "dataPoints": 97,
+  "strategies": [
+    {
+      "strategy": "dca",
+      "totalReturn": 8.90194945376993,
+      "totalReturnPercent": 0.8901949453769931,
+      "winRate": 100,
+      "sharpeRatio": 1.0552259591511204,
+      "maxDrawdownPercent": 1.3028096701344571,
+      "totalTrades": 1
+    },
+    {
+      "strategy": "grid",
+      "totalReturn": 31.39993511605053,
+      "totalReturnPercent": 3.1399935116050526,
+      "winRate": 88,
+      "sharpeRatio": 2.222178043343312,
+      "maxDrawdownPercent": 1.4742048523247488,
+      "totalTrades": 25
+    },
+    {
+      "strategy": "momentum",
+      "totalReturn": 3.0645044012775315,
+      "totalReturnPercent": 0.3064504401277532,
+      "winRate": 100,
+      "sharpeRatio": 0.6092214961764632,
+      "maxDrawdownPercent": 0.6841245229810213,
+      "totalTrades": 1
+    },
+    {
+      "strategy": "meanReversion",
+      "totalReturn": -4.623335328990379,
+      "totalReturnPercent": -0.46233353289903795,
+      "winRate": 75,
+      "sharpeRatio": -1.518902892723031,
+      "maxDrawdownPercent": 0.9017731470220164,
+      "totalTrades": 4
+    }
+  ],
+  "bestStrategy": {
+    "strategy": "grid",
+    "totalReturn": 31.39993511605053,
+    "totalReturnPercent": 3.1399935116050526,
+    "winRate": 88,
+    "sharpeRatio": 2.222178043343312,
+    "maxDrawdownPercent": 1.4742048523247488,
+    "totalTrades": 25
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2025-10-21T02:50:52.207Z",
+  "parameters": {
+    "market": "BTC-PERP",
+    "days": 7
+  },
+  "priceSummary": {
+    "min": 104777.54392041727,
+    "max": 113814.46413991987,
+    "start": 113814.46413991987,
+    "end": 109531.10905119126
+  },
+  "dataPoints": 169,
+  "strategies": [
+    {
+      "strategy": "dca",
+      "totalReturn": -14.408872238290996,
+      "totalReturnPercent": -1.4408872238290995,
+      "winRate": 50,
+      "sharpeRatio": -1.7379209556692488,
+      "maxDrawdownPercent": 2.0156469407393076,
+      "totalTrades": 2
+    },
+    {
+      "strategy": "grid",
+      "totalReturn": 13.642046571679657,
+      "totalReturnPercent": 1.3642046571679656,
+      "winRate": 55.88235294117647,
+      "sharpeRatio": 0.7140842971897572,
+      "maxDrawdownPercent": 2.8565190231553275,
+      "totalTrades": 34
+    },
+    {
+      "strategy": "momentum",
+      "totalReturn": 0.9978482877771739,
+      "totalReturnPercent": 0.0997848287777174,
+      "winRate": 0,
+      "sharpeRatio": 0.17988777322011387,
+      "maxDrawdownPercent": 0.8066104540301671,
+      "totalTrades": 2
+    },
+    {
+      "strategy": "meanReversion",
+      "totalReturn": 5.835283272430274,
+      "totalReturnPercent": 0.5835283272430275,
+      "winRate": 66.66666666666666,
+      "sharpeRatio": 1.5687190157563196,
+      "maxDrawdownPercent": 0.19465854099607466,
+      "totalTrades": 6
+    }
+  ],
+  "bestStrategy": {
+    "strategy": "grid",
+    "totalReturn": 13.642046571679657,
+    "totalReturnPercent": 1.3642046571679656,
+    "winRate": 55.88235294117647,
+    "sharpeRatio": 0.7140842971897572,
+    "maxDrawdownPercent": 2.8565190231553275,
+    "totalTrades": 34
+  }
+}
