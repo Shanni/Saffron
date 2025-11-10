@@ -1,50 +1,154 @@
-# Welcome to your Expo app 👋
+# Saffron 🌻
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Saffron is an Aptos-native financial assistant app featuring a natural language interface for trading and cross-chain bridging. Built with React Native and Expo, it provides seamless access to perpetual trading on Ekiden DEX and cross-chain transfers via CCTP.
 
-## Get started
+## 🏗️ Architecture
 
-1. Install dependencies
+### Frontend (React Native/Expo)
+- **Cross-platform app** - iOS, Android, and Web support
+- **Natural language interface** - Chat-based trading and bridging
+- **Aptos wallet integration** - Native wallet connectivity
+- **Real-time market data** - Live price feeds and trading interface
 
-   ```bash
-   npm install
-   ```
+### Backend API
+- **Node.js/Express server** - Located in `../backend/`
+- **Ekiden DEX integration** - Aptos perpetual trading
+- **CCTP bridge integration** - Cross-chain transfers
+- **JWT authentication** - Secure API access
 
-2. Start the app
+## 🚀 Quick Start
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+### 1. Start Backend Server
 ```bash
-npm run reset-project
+cd ../backend
+npm install
+npm start  # Runs on http://localhost:3000
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Start Mobile App
+```bash
+npm install
+npx expo start
+```
 
-## Learn more
+Choose your development environment:
+- **Development build** - Full native features
+- **iOS Simulator** - iOS development
+- **Android Emulator** - Android development  
+- **Expo Go** - Quick testing (limited features)
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📱 Features
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Trading
+- **Perpetual futures** on Aptos via Ekiden DEX
+- **Market & limit orders** with up to 10x leverage
+- **Real-time price feeds** and market data
+- **Trade preview** before execution
+- **Portfolio management** and P&L tracking
 
-## Join the community
+### Cross-Chain Bridging
+- **USDC transfers** between supported chains
+- **CCTP integration** for fast, secure bridging
+- **Multi-chain support** (Arbitrum, Base, etc.)
+- **Bridge preview** with fees and timing
 
-Join our community of developers creating universal apps.
+### Natural Language Interface
+- **Chat-based commands** for trading and bridging
+- **Voice input support** via Expo
+- **Smart order parsing** from natural language
+- **Transaction history** and notifications
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 🛠️ Development
+
+### Project Structure
+```
+Saffron/
+├── app/                 # Expo Router pages
+├── components/          # Reusable UI components
+├── api/                 # API client integrations
+├── assets/             # Images, fonts, icons
+├── constants/          # App configuration
+├── hooks/              # Custom React hooks
+└── scripts/            # Build and utility scripts
+```
+
+### Key Technologies
+- **React Native** - Cross-platform mobile framework
+- **Expo Router** - File-based navigation
+- **TypeScript** - Type-safe development
+- **Aptos SDK** - Blockchain integration
+- **React Navigation** - Advanced navigation
+
+### API Integration
+```typescript
+import backendAPI from '@/api/backend-client';
+
+// Execute trade
+const result = await backendAPI.executeTrade({
+  symbol: 'APT',
+  side: 'buy',
+  size: 5,
+  type: 'market',
+  leverage: 1
+});
+
+// Bridge USDC
+const bridge = await backendAPI.executeBridge({
+  fromChain: 'arbitrum',
+  toChain: 'base',
+  amount: '100'
+});
+```
+
+## 🔧 Configuration
+
+### Environment Setup
+1. **Aptos wallet** - Install Petra or Martian wallet
+2. **Backend server** - Ensure API server is running
+3. **Development tools** - Expo CLI and React Native debugger
+
+### Build Commands
+```bash
+npm run android      # Android development
+npm run ios         # iOS development  
+npm run web         # Web development
+npm run lint        # Code linting
+```
+
+## 📚 Documentation
+
+- **API Documentation** - See `../backend/README.md`
+- **Component Library** - See `./components/README.md`
+- **Expo Documentation** - [docs.expo.dev](https://docs.expo.dev)
+- **Aptos Documentation** - [aptos.dev](https://aptos.dev)
+
+## 🌐 Supported Networks
+
+### Trading (Aptos)
+- **Mainnet** - Production trading
+- **Testnet** - Development and testing
+
+### Bridging (CCTP)
+- **Arbitrum** - Layer 2 scaling
+- **Base** - Coinbase L2
+- **Ethereum** - Mainnet support
+- **More chains** - Additional networks coming soon
+
+## 🔐 Security
+
+- **Non-custodial** - Users control their private keys
+- **Signature verification** - All transactions signed locally
+- **Secure API** - JWT authentication and HTTPS
+- **Audit ready** - Clean, auditable smart contract interactions
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+## 📄 License
+
+This project is private and proprietary to SaffronTrade.
