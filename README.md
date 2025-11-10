@@ -121,17 +121,18 @@ npm run lint        # Code linting
 - **Component Library** - See `./components/README.md`
 
 ## 🌐 Supported Networks
-
-### Trading (Perp Dex)
-- **Mainnet** - Production trading
-- **Testnet** - Development and testing
-
-### Bridging (CCTP)
-- **Arbitrum** - Layer 2 scaling
-- **Base** - Coinbase L2
-- **Ethereum** - Mainnet support
-- **More chains** - Additional networks coming soon
-
+  
+  ### Trading (Perp Dex)
+  - **Mainnet** - Production trading
+  - **Testnet** - Development and testing
+  
+  ### Bridging (CCTP)
+  - **Aptos** - Native Aptos support
+  - **Solana** - High-throughput L1
+  - **Base** - Coinbase L2
+  - **Arbitrum** - Layer 2 scaling
+  - **Ethereum** - Mainnet support
+  
 ## 🔐 Security
 
 - **Non-custodial** - Users control their private keys
