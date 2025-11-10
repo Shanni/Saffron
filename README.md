@@ -1,18 +1,18 @@
 # Saffron 🌻
 
-Saffron is an Aptos-native financial assistant app featuring a natural language interface for trading and cross-chain bridging. Built with React Native and Expo, it provides seamless access to perpetual trading on Ekiden DEX and cross-chain transfers via CCTP.
+Saffron is an natively onchain financial assistant app featuring a natural language interface for trading and cross-chain bridging. Built with React Native and Expo, it provides seamless access to perpetual trading on Ekiden DEX and cross-chain transfers via CCTP.
 
 ## 🏗️ Architecture
 
 ### Frontend (React Native/Expo)
 - **Cross-platform app** - iOS, Android, and Web support
 - **Natural language interface** - Chat-based trading and bridging
-- **Aptos wallet integration** - Native wallet connectivity
+- ** Wallet integration** - Native wallet connectivity
 - **Real-time market data** - Live price feeds and trading interface
 
 ### Backend API
 - **Node.js/Express server** - Located in `../backend/`
-- **Ekiden DEX integration** - Aptos perpetual trading
+- **Ekiden DEX integration** - perpetual trading
 - **CCTP bridge integration** - Cross-chain transfers
 - **JWT authentication** - Secure API access
 
@@ -40,7 +40,7 @@ Choose your development environment:
 ## 📱 Features
 
 ### Trading
-- **Perpetual futures** on Aptos via Ekiden DEX
+- **Perpetual futures** 
 - **Market & limit orders** with up to 10x leverage
 - **Real-time price feeds** and market data
 - **Trade preview** before execution
@@ -76,7 +76,7 @@ Saffron/
 - **React Native** - Cross-platform mobile framework
 - **Expo Router** - File-based navigation
 - **TypeScript** - Type-safe development
-- **Aptos SDK** - Blockchain integration
+- **Onchain SDK** - Blockchain integration
 - **React Navigation** - Advanced navigation
 
 ### API Integration
@@ -103,7 +103,7 @@ const bridge = await backendAPI.executeBridge({
 ## 🔧 Configuration
 
 ### Environment Setup
-1. **Aptos wallet** - Install Petra or Martian wallet
+1. **Native Onchain wallet** - Install Petra or Martian wallet
 2. **Backend server** - Ensure API server is running
 3. **Development tools** - Expo CLI and React Native debugger
 
@@ -119,12 +119,10 @@ npm run lint        # Code linting
 
 - **API Documentation** - See `../backend/README.md`
 - **Component Library** - See `./components/README.md`
-- **Expo Documentation** - [docs.expo.dev](https://docs.expo.dev)
-- **Aptos Documentation** - [aptos.dev](https://aptos.dev)
 
 ## 🌐 Supported Networks
 
-### Trading (Aptos)
+### Trading (Perp Dex)
 - **Mainnet** - Production trading
 - **Testnet** - Development and testing
 
