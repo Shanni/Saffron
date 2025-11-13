@@ -1,0 +1,22 @@
+[package]
+name = "cctp_wrapper"
+version = "1.0.0"
+authors = []
+
+[addresses]
+# 包装合约地址（你的部署地址）
+cctp_wrapper = "0x96feac302e3b9c0cb53890aa2b5d4e3c1d23625fe621f05d8aa736d620627ffc"
+
+# Circle CCTP 地址（链上已部署，仅用于编译时引用）
+message_transmitter = "0x081e86cebf457a0c6004f35bd648a2794698f52e0dde09a48619dcd3d4cc23d9"
+token_messenger_minter = "0x5f9b937419dda90aa06c1836b7847f65bbbe3f1217567758dc2488be31a477b9"
+aptos_extensions = "0xb75a74c6f8fddb93fdc00194e2295d8d5c3f6a721e79a2b86884394dcc554f8f"
+stablecoin = "0x69091fbab5f7d635ee7ac5098cf0c1efbe31d68fec0f2cd565e8d168daf52832"
+deployer = "0x96feac302e3b9c0cb53890aa2b5d4e3c1d23625fe621f05d8aa736d620627ffc"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework", rev = "mainnet", subdir = "aptos-framework" }
+MessageTransmitter = { local = "./dep/message_transmitter" }
+TokenMessengerMinter = { local = "./dep/token_messenger_minter" }
+
+

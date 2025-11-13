@@ -1,0 +1,18 @@
+[package]
+name = "TokenMessengerMinter"
+version = "1.0.0"
+upgrade_policy = "compatible"
+
+[addresses]
+message_transmitter = "_"
+token_messenger_minter = "_"
+
+[dev-addresses]
+message_transmitter = "0xebe6e5b8db973b4c8f5c3fbe7f5802e7a823b7ae4b70e5b6b1ce978418e5dad5"
+token_messenger_minter = "0x4e0d4a160a8490565c7f61cd21531a320ccda0f55b9c7d20131b3717650db043"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework", rev = "mainnet", subdir = "aptos-framework" }
+MessageTransmitter = { local = "../message_transmitter" }
+
+[dev-dependencies]

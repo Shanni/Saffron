@@ -1,0 +1,12 @@
+[package]
+name = "MessageTransmitter"
+version = "1.0.0"
+upgrade_policy = "compatible"
+
+[addresses]
+message_transmitter = "_"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework", rev = "mainnet", subdir = "aptos-framework" }
+
+[dev-dependencies]
