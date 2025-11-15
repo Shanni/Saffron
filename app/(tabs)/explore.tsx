@@ -6,7 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { strategyEngine, StrategyConfig } from '../../services/strategyEngine';
+import { strategyEngine } from '../../services/strategyEngine';
 import { dexService } from '../../services/dexIntegration';
 
 interface PortfolioItem {
@@ -39,7 +39,6 @@ export default function PortfolioScreen() {
   const colorScheme = useColorScheme();
   const [strategies, setStrategies] = useState<StrategyOverview[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
-  const [marketData, setMarketData] = useState<any>({});
   
   // Enhanced account balance with strategy data
   const [accountBalance, setAccountBalance] = useState<AccountBalance>({
@@ -122,45 +121,6 @@ export default function PortfolioScreen() {
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, []);
-  
-  const portfolio: PortfolioItem[] = [
-    {
-      symbol: 'AAPL',
-      name: 'Apple Inc.',
-      shares: 25,
-      currentPrice: 185.20,
-      change: 2.15,
-      changePercent: 1.17
-    },
-    {
-      symbol: 'TSLA',
-      name: 'Tesla Inc.',
-      shares: 10,
-      currentPrice: 245.80,
-      change: -5.30,
-      changePercent: -2.11
-    },
-    {
-      symbol: 'MSFT',
-      name: 'Microsoft Corp.',
-      shares: 15,
-      currentPrice: 378.90,
-      change: 8.45,
-      changePercent: 2.28
-    },
-    {
-      symbol: 'GOOGL',
-      name: 'Alphabet Inc.',
-      shares: 8,
-      currentPrice: 142.65,
-      change: -1.25,
-      changePercent: -0.87
-    }
-  ];
-
-  const getChangeColor = (change: number) => {
-    return change >= 0 ? '#4CAF50' : '#F44336';
-  };
 
   const getStrategyIcon = (type: string) => {
     switch (type) {

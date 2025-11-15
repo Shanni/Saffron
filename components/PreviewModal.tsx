@@ -15,7 +15,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export type TradingStrategy = 
   | 'market'           // Immediate execution at market price
@@ -382,6 +382,29 @@ export default function PreviewModal({ visible, preview, onConfirm, onCancel }: 
                       ))}
                     </ThemedView>
                   )}
+                </ThemedView>
+
+                {/* Slippage Controls */}
+                <ThemedView style={styles.slippageSection}>
+                  <ThemedView style={styles.slippageSectionHeader}>
+                    <ThemedText style={styles.slippageSectionTitle}>Slippage Tolerance</ThemedText>
+                    <ThemedText style={styles.slippageValue}>{slippage.toFixed(1)}%</ThemedText>
+                  </ThemedView>
+                  <CustomSlider
+                    value={slippage}
+                    onValueChange={setSlippage}
+                    minimum={0.1}
+                    maximum={5}
+                    step={0.1}
+                  />
+                  <ThemedView style={styles.slippageLabels}>
+                    <ThemedText style={styles.slippageLabel}>Tighter fill</ThemedText>
+                    <ThemedText style={styles.slippageLabel}>Balanced</ThemedText>
+                    <ThemedText style={styles.slippageLabel}>More aggressive</ThemedText>
+                  </ThemedView>
+                  <ThemedText style={styles.slippageDescription}>
+                    Higher slippage increases the chance of execution but may lead to a worse fill price.
+                  </ThemedText>
                 </ThemedView>
 
               </ThemedView>

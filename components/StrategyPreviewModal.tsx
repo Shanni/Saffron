@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -410,7 +409,7 @@ export default function StrategyPreviewModal({
           <ThemedView style={[styles.warningCard, { backgroundColor: 'rgba(255, 152, 0, 0.1)', borderColor: '#FF9800' }]}>
             <IconSymbol name="exclamationmark.triangle" size={20} color="#FF9800" />
             <ThemedText style={[styles.warningText, { color: '#FF9800' }]}>
-              Trading involves risk. Past performance doesn't guarantee future results. Only invest what you can afford to lose.
+              Trading involves risk. Past performance doesn&apos;t guarantee future results. Only invest what you can afford to lose.
             </ThemedText>
           </ThemedView>
         </ScrollView>

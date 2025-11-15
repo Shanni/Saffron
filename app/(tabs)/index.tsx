@@ -16,8 +16,8 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import PreviewModal from '@/components/PreviewModal';
 import StrategyPreviewModal from '@/components/StrategyPreviewModal';
-import SaffronAPI, { TradePreview, BridgePreview } from '@/api';
-import backendAPI, { TradeResult } from '@/api/backend-client';
+import { SaffronAPI, TradePreview, BridgePreview } from '@/api';
+import { backendAPI, TradeResult } from '@/api/backend-client';
 import { strategyEngine } from '../../services/strategyEngine';
 import { aiProcessor } from '../../services/dexIntegration';
 
@@ -67,6 +67,13 @@ export default function SaffronHomeScreen() {
 
     initBackend();
   }, []);
+
+  useEffect(() => {
+    console.log(
+      'Backend connection status:',
+      isBackendConnected ? 'connected' : 'disconnected'
+    );
+  }, [isBackendConnected]);
 
   // Allowed tokens on Aptos perp DEX (example set; adjust as needed)
   const APTOS_PERP_TOKENS = new Set([
@@ -276,7 +283,7 @@ export default function SaffronHomeScreen() {
       // Clear input
       setInputText('');
       
-    } catch (error) {
+    } catch {
       setIsProcessing(false);
       Alert.alert('Error', 'Failed to process command. Please try again.');
     }
@@ -319,6 +326,7 @@ export default function SaffronHomeScreen() {
       }
       
     } catch (error) {
+      console.error('Strategy command error:', error);
       setTransactions(prev => 
         prev.map(t => 
           t.id === transaction.id 
@@ -437,7 +445,7 @@ export default function SaffronHomeScreen() {
     
     try {
       // Create the strategy
-      const strategyId = strategyEngine.createStrategy(pendingStrategy);
+      strategyEngine.createStrategy(pendingStrategy);
       
       // Update transaction as completed
       setTransactions(prev => 
@@ -451,6 +459,7 @@ export default function SaffronHomeScreen() {
       Alert.alert('Success', 'Strategy created and activated successfully!');
       
     } catch (error) {
+      console.error('Strategy creation error:', error);
       // Update transaction as failed
       setTransactions(prev => 
         prev.map(t => 
